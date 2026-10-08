@@ -28,6 +28,12 @@ public static class DependencyInjection
         // Execution authorization: deny-by-default, scope-aware policy.
         services.AddSingleton<IToolExecutionPolicy, ScopedToolExecutionPolicy>();
 
+        // Execution engine. IExecutionEngine depends on IToolRunner, which is only
+        // registered in the privileged runner process — the web app never resolves it.
+        services.AddScoped<IExecutionService, ExecutionService>();
+        services.AddScoped<IExecutionQueue, ExecutionQueue>();
+        services.AddScoped<IExecutionEngine, ExecutionEngine>();
+
         return services;
     }
 }
