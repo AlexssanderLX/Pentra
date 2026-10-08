@@ -18,6 +18,8 @@ public sealed class PentraDbContext : DbContext, IPentraDbContext
     public DbSet<Evidence> Evidence => Set<Evidence>();
     public DbSet<ReportDraft> Reports => Set<ReportDraft>();
     public DbSet<ChangeHistoryEntry> History => Set<ChangeHistoryEntry>();
+    public DbSet<ToolRun> ToolRuns => Set<ToolRun>();
+    public DbSet<ToolRunLogLine> ToolRunLogs => Set<ToolRunLogLine>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -37,6 +39,7 @@ public sealed class PentraDbContext : DbContext, IPentraDbContext
             e.HasMany(p => p.Evidence).WithOne(x => x.Project!).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(p => p.Reports).WithOne(r => r.Project!).HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(p => p.History).WithOne(h => h.Project!).HasForeignKey(h => h.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(p => p.Runs).WithOne(r => r.Project!).HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ScopeTarget>(e =>
@@ -95,6 +98,37 @@ public sealed class PentraDbContext : DbContext, IPentraDbContext
             e.Property(h => h.Summary).IsRequired().HasMaxLength(1000);
             e.Property(h => h.Action).HasConversion<int>();
             e.HasIndex(h => new { h.ProjectId, h.CreatedAt });
+        });
+
+        builder.Entity<ToolRun>(e =>
+        {
+            e.Property(r => r.Status).HasConversion<int>();
+            e.Property(r => r.ToolSlug).IsRequired().HasMaxLength(100);
+            e.Property(r => r.ImageRef).HasMaxLength(300);
+            e.Property(r => r.TargetValue).HasMaxLength(500);
+            e.Property(r => r.ParametersJson).HasMaxLength(8000);
+            e.Property(r => r.ApprovedArgumentsJson).HasMaxLength(8000);
+            e.Property(r => r.AuthorizationReason).HasMaxLength(1000);
+            e.Property(r => r.FailureReason).HasMaxLength(2000);
+            e.Property(r => r.ArtifactSha256).HasMaxLength(64);
+            e.Property(r => r.RunnerId).HasMaxLength(100);
+            // Result/output columns can be large; no length cap (application truncates).
+
+            e.HasIndex(r => new { r.Status, r.CreatedAt });
+            e.HasIndex(r => new { r.ProjectId, r.CreatedAt });
+
+            e.HasOne(r => r.Phase).WithMany().HasForeignKey(r => r.PhaseId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.SecurityTool).WithMany().HasForeignKey(r => r.SecurityToolId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.ScopeTarget).WithMany().HasForeignKey(r => r.ScopeTargetId).OnDelete(DeleteBehavior.SetNull);
+
+            e.HasMany(r => r.Logs).WithOne(l => l.ToolRun!).HasForeignKey(l => l.ToolRunId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ToolRunLogLine>(e =>
+        {
+            e.Property(l => l.Stream).HasConversion<int>();
+            e.Property(l => l.Text).HasMaxLength(4000);
+            e.HasIndex(l => new { l.ToolRunId, l.Seq }).IsUnique();
         });
     }
 }

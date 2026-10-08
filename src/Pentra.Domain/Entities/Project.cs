@@ -36,4 +36,6 @@ public class Project : AuditableEntity
     public ICollection<ReportDraft> Reports { get; set; } = new List<ReportDraft>();
 
     public ICollection<ChangeHistoryEntry> History { get; set; } = new List<ChangeHistoryEntry>();
+
+    public ICollection<ToolRun> Runs { get; set; } = new List<ToolRun>();
 }

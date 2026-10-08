@@ -12,5 +12,10 @@ public enum ChangeAction
     TargetAdded = 4,
     TargetRemoved = 5,
     ToolSelected = 6,
-    ToolDeselected = 7
+    ToolDeselected = 7,
+    ExecutionRequested = 8,
+    ExecutionDenied = 9,
+    ExecutionCancelled = 10,
+    ExecutionCompleted = 11,
+    ExecutionFailed = 12
 }

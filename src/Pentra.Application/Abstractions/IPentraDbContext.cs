@@ -18,6 +18,8 @@ public interface IPentraDbContext
     DbSet<Evidence> Evidence { get; }
     DbSet<ReportDraft> Reports { get; }
     DbSet<ChangeHistoryEntry> History { get; }
+    DbSet<ToolRun> ToolRuns { get; }
+    DbSet<ToolRunLogLine> ToolRunLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

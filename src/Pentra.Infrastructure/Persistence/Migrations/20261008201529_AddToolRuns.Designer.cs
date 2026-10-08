@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pentra.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Pentra.Infrastructure.Persistence;
 namespace Pentra.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PentraDbContext))]
-    partial class PentraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008201529_AddToolRuns")]
+    partial class AddToolRuns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
