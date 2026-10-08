@@ -24,7 +24,8 @@ builder.Services.AddHostedService<ExecutionWorker>();
 
 var host = builder.Build();
 
-// Ensure the schema exists (EF serializes concurrent migrations via its lock table).
-await DatabaseInitializer.InitializeAsync(host.Services);
+// Ensure the schema exists and relax the DB file permissions so the non-root
+// web container can share it (EF serializes concurrent migrations via its lock).
+await DatabaseInitializer.InitializeAsync(host.Services, shareFilePermissions: true);
 
 host.Run();

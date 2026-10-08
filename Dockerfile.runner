@@ -26,4 +26,7 @@ COPY --from=build /app/publish .
 ENV ConnectionStrings__Pentra="Data Source=/app/data/pentra.db" \
     DOTNET_ENVIRONMENT=Production
 
-ENTRYPOINT ["dotnet", "Pentra.Runner.dll"]
+# The runner (root) migrates first and creates the shared SQLite file. umask 000
+# + a world-writable data dir let the non-root web service write the same file,
+# so the web keeps running unprivileged while sharing the database.
+ENTRYPOINT ["/bin/sh", "-c", "mkdir -p /app/data && chmod 777 /app/data && umask 000 && exec dotnet Pentra.Runner.dll"]

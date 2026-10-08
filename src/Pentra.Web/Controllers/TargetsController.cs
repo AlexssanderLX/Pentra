@@ -16,8 +16,12 @@ public sealed class TargetsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            TempData["Flash"] = "Target value is required.";
-            return RedirectToAction("Details", "Projects", new { id = model.ProjectId });
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+            TempData["Flash"] = firstError ?? "Please correct the target details.";
+            return RedirectToAction("Details", "Projects", new { id = model.ProjectId }, fragment: "scope");
         }
 
         var result = await _targets.AddAsync(new CreateTargetRequest(

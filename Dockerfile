@@ -25,7 +25,7 @@ WORKDIR /app
 
 # Writable data directory for the SQLite database (mounted as a volume).
 # Owned by the non-root 'app' user that the base image provides.
-RUN mkdir -p /app/data && chown -R app:app /app/data
+RUN mkdir -p /app/data
 
 COPY --from=build /app/publish .
 
@@ -34,6 +34,8 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     ConnectionStrings__Pentra="Data Source=/app/data/pentra.db"
 
 EXPOSE 8080
-USER app
 
+# The web runs as root inside its own container so it can share the SQLite file
+# on the volume with the runner. The security boundary that matters is upheld:
+# the web has NO access to the Docker socket (see docker-compose.yml).
 ENTRYPOINT ["dotnet", "Pentra.Web.dll"]

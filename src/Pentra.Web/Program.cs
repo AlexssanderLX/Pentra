@@ -10,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    // With nullable reference types on, non-nullable string properties would be
+    // treated as implicitly [Required]. Optional fields (notes, descriptions) use
+    // non-nullable strings, so disable that; explicit [Required] still applies.
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
 });
 
 builder.Services.AddApplication();
@@ -39,8 +43,9 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Apply migrations and seed reference data (phases + tool catalog) on startup.
-await DatabaseInitializer.InitializeAsync(app.Services);
+// Apply migrations and seed reference data on startup. Retries while the runner
+// creates and relaxes the shared database file (in the Docker deployment).
+await DatabaseInitializer.InitializeWithRetryAsync(app.Services);
 
 app.Run();
 
