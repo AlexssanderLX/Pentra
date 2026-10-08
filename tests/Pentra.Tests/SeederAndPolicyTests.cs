@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Pentra.Application.Execution.Adapters;
 using Pentra.Application.Security;
 using Pentra.Domain.Abstractions;
 using Pentra.Domain.Entities;
@@ -56,13 +57,13 @@ public class SeederAndPolicyTests
     public void DenyAllPolicy_DeniesEveryRequest()
     {
         var policy = new DenyAllToolExecutionPolicy();
-        var request = new ToolExecutionRequest(
-            1, 1,
-            new SecurityTool { Slug = "nmap", Name = "Nmap" },
-            new ScopeTarget { Value = "example.com", IsAuthorized = true },
-            Array.Empty<string>());
+        var context = new ToolAuthorizationContext(
+            new Project { Id = 1, Status = Pentra.Domain.Enums.ProjectStatus.Active },
+            new ScopeTarget { ProjectId = 1, Value = "example.com", IsAuthorized = true },
+            new NmapAdapter().Definition,
+            ConfirmedActive: true);
 
-        var decision = policy.Authorize(request);
+        var decision = policy.Authorize(context);
 
         decision.IsAllowed.Should().BeFalse();
         decision.Reason.Should().NotBeNullOrWhiteSpace();

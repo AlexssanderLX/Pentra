@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pentra.Application.Abstractions;
+using Pentra.Application.Execution;
+using Pentra.Application.Execution.Adapters;
 using Pentra.Application.Security;
 using Pentra.Application.Services;
 using Pentra.Domain.Abstractions;
@@ -17,8 +19,14 @@ public static class DependencyInjection
         services.AddScoped<IPhaseService, PhaseService>();
         services.AddScoped<IDashboardService, DashboardService>();
 
-        // Security: execution is denied by default in this checkpoint.
-        services.AddSingleton<IToolExecutionPolicy, DenyAllToolExecutionPolicy>();
+        // Tool adapters (pure: build argv + parse output) and their registry.
+        services.AddSingleton<IToolAdapter, NmapAdapter>();
+        services.AddSingleton<IToolAdapter, SubfinderAdapter>();
+        services.AddSingleton<IToolAdapter, HttpxAdapter>();
+        services.AddSingleton<IToolAdapterRegistry, ToolAdapterRegistry>();
+
+        // Execution authorization: deny-by-default, scope-aware policy.
+        services.AddSingleton<IToolExecutionPolicy, ScopedToolExecutionPolicy>();
 
         return services;
     }

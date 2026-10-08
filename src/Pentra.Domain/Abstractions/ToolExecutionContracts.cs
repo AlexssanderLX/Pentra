@@ -1,77 +1,135 @@
 using Pentra.Domain.Entities;
+using Pentra.Domain.Enums;
 
 namespace Pentra.Domain.Abstractions;
 
 // ---------------------------------------------------------------------------
-// Contracts for FUTURE tool execution. NOTHING in Checkpoint 1 implements these
-// in a way that runs a scanner. They exist so later checkpoints can plug in
-// Tool Adapters and Docker Runners behind an authorization gate, without
-// reshaping the domain. Keeping them here documents the intended boundary.
+// Execution contracts. These define the boundary between:
+//   * tool adapters  (pure: build argv + parse output for one tool),
+//   * the execution policy (authorize a request),
+//   * the container runner (execute a prepared spec in isolation).
+// Implementations live in Application (adapters, policy) and Infrastructure
+// (Docker runner). The web app never talks to Docker directly.
 // ---------------------------------------------------------------------------
 
-/// <summary>
-/// A fully-resolved, validated request to run a single tool against an
-/// authorized target. Construction of this object is expected to be the only
-/// path to execution in future checkpoints.
-/// </summary>
-public sealed record ToolExecutionRequest(
-    int ProjectId,
-    int PhaseId,
-    SecurityTool Tool,
-    ScopeTarget Target,
-    IReadOnlyList<string> Arguments);
-
-/// <summary>Outcome of a (future) tool run.</summary>
-public sealed record ToolExecutionResult(
-    bool Succeeded,
-    int ExitCode,
-    string Output,
-    string Error,
-    DateTimeOffset StartedAt,
-    DateTimeOffset CompletedAt);
-
-/// <summary>
-/// Authorization gate for execution. An implementation must confirm the target
-/// is in-scope and explicitly authorized, and that the project is in a state
-/// that permits running tools. Checkpoint 1 ships a policy that always denies.
-/// </summary>
-public interface IToolExecutionPolicy
+/// <summary>Resource and isolation limits applied to a tool container.</summary>
+public sealed record ExecutionLimits(
+    int TimeoutSeconds,
+    long MemoryBytes,
+    double Cpus,
+    int PidsLimit,
+    ContainerNetwork Network)
 {
-    /// <summary>
-    /// Returns an authorization decision for the given request.
-    /// </summary>
-    ToolExecutionAuthorization Authorize(ToolExecutionRequest request);
-}
-
-/// <summary>Result of an authorization check.</summary>
-public sealed record ToolExecutionAuthorization(bool IsAllowed, string Reason)
-{
-    public static ToolExecutionAuthorization Allow() => new(true, "Authorized.");
-
-    public static ToolExecutionAuthorization Deny(string reason) => new(false, reason);
+    public static ExecutionLimits Default { get; } =
+        new(TimeoutSeconds: 300, MemoryBytes: 512L * 1024 * 1024, Cpus: 1.0, PidsLimit: 256, Network: ContainerNetwork.Bridge);
 }
 
 /// <summary>
-/// Adapter that knows how to translate a <see cref="ToolExecutionRequest"/> into
-/// a concrete command line for a specific tool. Implemented per tool in a
-/// future checkpoint. Building a command line is pure and side-effect free.
+/// Static description of a tool: its identity, the pinned approved image, its
+/// risk class, execution limits and a human-readable capability summary.
+/// </summary>
+public sealed record ToolDefinition(
+    string Slug,
+    string DisplayName,
+    string ImageRef,
+    ToolRiskLevel Risk,
+    ExecutionLimits Limits,
+    string Capabilities)
+{
+    public bool IsActiveScan => Risk == ToolRiskLevel.Active;
+}
+
+/// <summary>Result of building an argument vector from approved parameters.</summary>
+public sealed record ArgumentBuildResult(bool Ok, IReadOnlyList<string> Arguments, string? Error)
+{
+    public static ArgumentBuildResult Success(IReadOnlyList<string> args) => new(true, args, null);
+    public static ArgumentBuildResult Failure(string error) => new(false, Array.Empty<string>(), error);
+}
+
+/// <summary>
+/// Structured, generic parse output rendered as a titled table in the UI and
+/// stored as JSON. Deliberately neutral — nothing here is a "confirmed vuln".
+/// </summary>
+public sealed record ToolParseResult(
+    string Title,
+    IReadOnlyList<string> Columns,
+    IReadOnlyList<IReadOnlyList<string>> Rows,
+    string Summary)
+{
+    public static ToolParseResult Empty(string title, string summary) =>
+        new(title, Array.Empty<string>(), Array.Empty<IReadOnlyList<string>>(), summary);
+}
+
+/// <summary>
+/// A tool adapter: everything needed to run and interpret ONE tool. Pure and
+/// side-effect free — it builds argv and parses output but never executes.
 /// </summary>
 public interface IToolAdapter
 {
-    /// <summary>Slug of the tool this adapter handles (matches <see cref="SecurityTool.Slug"/>).</summary>
-    string ToolSlug { get; }
+    /// <summary>Slug matching <see cref="SecurityTool.Slug"/> and <see cref="ToolDefinition.Slug"/>.</summary>
+    string Slug { get; }
 
-    /// <summary>Builds (but does not run) the argument vector for the request.</summary>
-    IReadOnlyList<string> BuildCommand(ToolExecutionRequest request);
+    ToolDefinition Definition { get; }
+
+    /// <summary>
+    /// Validates the approved parameter set against this tool's allowed schema and
+    /// builds the argument vector, injecting only the given (already-authorized)
+    /// target. Rejects unknown/malformed parameters — the command-injection gate.
+    /// </summary>
+    ArgumentBuildResult BuildArguments(string targetValue, IReadOnlyDictionary<string, string> parameters);
+
+    /// <summary>Parses raw tool output into a structured, neutral result.</summary>
+    ToolParseResult Parse(string stdout, string stderr);
+}
+
+/// <summary>Everything the policy needs to make an authorization decision.</summary>
+public sealed record ToolAuthorizationContext(
+    Project Project,
+    ScopeTarget Target,
+    ToolDefinition Tool,
+    bool ConfirmedActive);
+
+/// <summary>Authorization gate for execution. Deny-by-default in every implementation.</summary>
+public interface IToolExecutionPolicy
+{
+    ToolExecutionAuthorization Authorize(ToolAuthorizationContext context);
+}
+
+/// <summary>Result of an authorization check, with a recorded reason.</summary>
+public sealed record ToolExecutionAuthorization(bool IsAllowed, string Reason)
+{
+    public static ToolExecutionAuthorization Allow() => new(true, "Authorized.");
+    public static ToolExecutionAuthorization Deny(string reason) => new(false, reason);
+}
+
+/// <summary>A fully-prepared, authorized request to run one tool container.</summary>
+public sealed record ContainerRunSpec(
+    int RunId,
+    string ToolSlug,
+    string ImageRef,
+    string TargetValue,
+    IReadOnlyList<string> Arguments,
+    ExecutionLimits Limits);
+
+/// <summary>Outcome of a container run (logs are streamed via a callback, not returned).</summary>
+public sealed record ContainerRunResult(
+    int ExitCode,
+    bool TimedOut,
+    bool Cancelled,
+    string Error)
+{
+    public bool Succeeded => ExitCode == 0 && !TimedOut && !Cancelled && string.IsNullOrEmpty(Error);
 }
 
 /// <summary>
-/// Executes a prepared command in an isolated environment (e.g. an ephemeral
-/// Docker container). Checkpoint 1 provides no runtime implementation and the
-/// Docker socket is never exposed to the web application.
+/// Executes a prepared <see cref="ContainerRunSpec"/> in an isolated ephemeral
+/// container, streaming log lines through <paramref name="onLog"/>. The only
+/// component granted Docker access; its interface upward is intentionally narrow.
 /// </summary>
 public interface IToolRunner
 {
-    /// <summary>Runs the request after policy authorization. Future checkpoint.</summary>
-    Task<ToolExecutionResult> RunAsync(ToolExecutionRequest request, CancellationToken cancellationToken = default);
+    Task<ContainerRunResult> RunAsync(
+        ContainerRunSpec spec,
+        Func<LogStream, string, Task> onLog,
+        CancellationToken cancellationToken = default);
 }
