@@ -1,0 +1,14 @@
+@model Pentra.Domain.Enums.ExecutionStatus
+@{
+    var (cls, label) = Model switch
+    {
+        ExecutionStatus.Pending => ("badge-neutral", "Pending"),
+        ExecutionStatus.Running => ("badge-primary", "Running"),
+        ExecutionStatus.Completed => ("badge-ok", "Completed"),
+        ExecutionStatus.Failed => ("badge-danger", "Failed"),
+        ExecutionStatus.Cancelled => ("badge-warn", "Cancelled"),
+        ExecutionStatus.TimedOut => ("badge-warn", "Timed out"),
+        _ => ("badge-neutral", Model.ToString())
+    };
+}
+<span class="@cls" data-run-status>@label</span>

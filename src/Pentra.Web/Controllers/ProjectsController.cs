@@ -11,17 +11,23 @@ public sealed class ProjectsController : Controller
     private readonly IPhaseService _phases;
     private readonly IToolCatalogService _tools;
     private readonly IChangeHistoryService _history;
+    private readonly Pentra.Application.Execution.IExecutionService _executions;
+    private readonly Pentra.Application.Execution.IToolAdapterRegistry _adapters;
 
     public ProjectsController(
         IProjectService projects,
         IPhaseService phases,
         IToolCatalogService tools,
-        IChangeHistoryService history)
+        IChangeHistoryService history,
+        Pentra.Application.Execution.IExecutionService executions,
+        Pentra.Application.Execution.IToolAdapterRegistry adapters)
     {
         _projects = projects;
         _phases = phases;
         _tools = tools;
         _history = history;
+        _executions = executions;
+        _adapters = adapters;
     }
 
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -46,6 +52,13 @@ public sealed class ProjectsController : Controller
             .Select(s => (s.PhaseId, s.SecurityToolId))
             .ToHashSet();
 
+        var runs = await _executions.GetRunsForProjectAsync(id, ct);
+
+        // Tools that have an execution adapter, plus which ones are active scans.
+        var adapterSlugs = _adapters.All.ToDictionary(a => a.Slug, a => a.Definition.IsActiveScan);
+        var executableTools = catalog.Where(t => adapterSlugs.ContainsKey(t.Slug)).ToList();
+        var activeSlugs = adapterSlugs.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet();
+
         var vm = new ProjectDetailsViewModel
         {
             Project = project,
@@ -53,7 +66,10 @@ public sealed class ProjectsController : Controller
             Catalog = catalog,
             History = history,
             SelectedToolKeys = selected,
-            NewTarget = new TargetFormViewModel { ProjectId = id }
+            NewTarget = new TargetFormViewModel { ProjectId = id },
+            Runs = runs,
+            ExecutableTools = executableTools,
+            ActiveToolSlugs = activeSlugs
         };
 
         return View(vm);

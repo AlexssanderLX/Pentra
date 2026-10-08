@@ -1,0 +1,117 @@
+@model Pentra.Web.Models.RunDetailsViewModel
+@{
+    var run = Model.Run;
+    ViewData["Title"] = $"{run.SecurityTool?.Name ?? run.ToolSlug} run";
+    var lastSeq = Model.Logs.Count > 0 ? Model.Logs[^1].Seq : 0;
+}
+
+<div class="mb-6">
+    <a class="text-sm text-muted hover:text-content" asp-controller="Projects" asp-action="Details" asp-route-id="@run.ProjectId" asp-fragment="executions">&larr; Back to project</a>
+    <div class="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl">@(run.SecurityTool?.Name ?? run.ToolSlug)</h1>
+                <partial name="_RunStatusBadge" model="run.Status" />
+                @if (run.IsActiveScan)
+                {
+                    <span class="badge-warn">active scan</span>
+                }
+            </div>
+            <p class="mt-1 font-mono text-sm text-muted">@run.TargetValue</p>
+        </div>
+        @if (run.IsActive)
+        {
+            <form asp-controller="Executions" asp-action="Cancel" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@run.Id" />
+                <input type="hidden" name="projectId" value="@run.ProjectId" />
+                <button type="submit" class="btn-danger btn-sm">Cancel run</button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="card card-pad space-y-3 text-sm lg:col-span-1">
+        <div class="flex justify-between gap-4"><span class="text-muted">Image</span><span class="font-mono text-right">@run.ImageRef</span></div>
+        <div class="flex justify-between"><span class="text-muted">Phase</span><span>@(run.Phase?.Name ?? "—")</span></div>
+        <div class="flex justify-between"><span class="text-muted">Started</span><span class="font-mono">@(run.StartedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</span></div>
+        <div class="flex justify-between"><span class="text-muted">Duration</span><span class="font-mono">@(run.DurationMs is long ms ? $"{ms / 1000.0:0.0}s" : "—")</span></div>
+        <div class="flex justify-between"><span class="text-muted">Exit code</span><span class="font-mono">@(run.ExitCode?.ToString() ?? "—")</span></div>
+        <div class="flex justify-between gap-4"><span class="text-muted">Parameters</span><span class="font-mono text-right break-all">@run.ParametersJson</span></div>
+        @if (!string.IsNullOrWhiteSpace(run.FailureReason))
+        {
+            <div class="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-200">@run.FailureReason</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(run.ArtifactSha256))
+        {
+            <div class="pt-2">
+                <span class="text-muted">Artifact SHA-256</span>
+                <p class="mt-1 break-all font-mono text-[11px] text-muted">@run.ArtifactSha256</p>
+            </div>
+        }
+    </div>
+
+    <div class="card lg:col-span-2">
+        <div class="card-head">
+            <h2 class="text-base">Live console</h2>
+        </div>
+        <div class="card-pad">
+            <pre id="run-console" class="console" data-run-id="@run.Id" data-last-seq="@lastSeq" data-active="@(run.IsActive ? "true" : "false")">@foreach (var line in Model.Logs)
+{<text></text>@FormatLine(line)
+}</pre>
+        </div>
+    </div>
+</div>
+
+@if (Model.Result is not null && Model.Result.Rows.Count > 0)
+{
+    <section class="mt-6 card">
+        <div class="card-head">
+            <h2 class="text-base">@Model.Result.Title</h2>
+            <span class="badge-neutral">@Model.Result.Summary</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        @foreach (var col in Model.Result.Columns)
+                        {
+                            <th>@col</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Result.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row)
+                            {
+                                <td class="font-mono">@cell</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+else if (Model.Result is not null)
+{
+    <section class="mt-6 card card-pad">
+        <p class="text-sm text-muted">@Model.Result.Summary</p>
+    </section>
+}
+
+@functions {
+    private static string FormatLine(Pentra.Domain.Entities.ToolRunLogLine line)
+    {
+        var prefix = line.Stream switch
+        {
+            Pentra.Domain.Enums.LogStream.Stderr => "[err] ",
+            Pentra.Domain.Enums.LogStream.System => "[sys] ",
+            _ => ""
+        };
+        return prefix + line.Text;
+    }
+}

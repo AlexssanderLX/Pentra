@@ -167,4 +167,9 @@
   .flash {
     @apply rounded-lg border border-primary/30 bg-primary-soft px-4 py-3 text-sm text-primary;
   }
+
+  .console {
+    @apply max-h-[28rem] overflow-auto whitespace-pre-wrap break-words rounded-lg border
+           border-white/10 bg-black/60 p-4 font-mono text-xs leading-relaxed text-content/90;
+  }
 }

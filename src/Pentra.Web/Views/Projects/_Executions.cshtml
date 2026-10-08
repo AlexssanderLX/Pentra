@@ -1,0 +1,155 @@
+@model Pentra.Web.Models.ProjectDetailsViewModel
+@{
+    var project = Model.Project;
+    var activeRuns = Model.Runs.Count(r => r.IsActive);
+}
+
+<section id="executions" class="mt-6 card">
+    <div class="card-head">
+        <h2 class="text-base">Executions</h2>
+        <div class="flex items-center gap-2">
+            @if (activeRuns > 0)
+            {
+                <span class="badge-primary">@activeRuns active</span>
+            }
+            <span class="badge-neutral">@Model.Runs.Count total</span>
+        </div>
+    </div>
+
+    <div class="card-pad space-y-6">
+        @if (project.Status != ProjectStatus.Active)
+        {
+            <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                The project must be <strong>Active</strong> to run tools. Current status: @project.Status.
+            </div>
+        }
+
+        @if (Model.AuthorizedTargets.Count == 0)
+        {
+            <p class="text-sm text-muted">Add at least one <strong>authorized</strong> target in the scope above before running tools.</p>
+        }
+        else if (Model.ExecutableTools.Count > 0)
+        {
+            <form asp-controller="Executions" asp-action="Start" method="post" id="start-run-form" class="rounded-lg border border-white/10 bg-bg/40 p-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ProjectId" value="@project.Id" />
+                <h3 class="mb-3 text-sm font-semibold text-content">Start a run</h3>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div>
+                        <label class="label" for="run-tool">Tool</label>
+                        <select class="select" name="SecurityToolId" id="run-tool">
+                            @foreach (var tool in Model.ExecutableTools)
+                            {
+                                <option value="@tool.Id" data-slug="@tool.Slug" data-active="@(Model.ActiveToolSlugs.Contains(tool.Slug) ? "true" : "false")">@tool.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="run-target">Target</label>
+                        <select class="select" name="ScopeTargetId" id="run-target">
+                            @foreach (var t in Model.AuthorizedTargets)
+                            {
+                                <option value="@t.Id">@t.Value</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="run-phase">Phase</label>
+                        <select class="select" name="PhaseId" id="run-phase">
+                            @foreach (var phase in Model.Phases)
+                            {
+                                <option value="@phase.Id">@phase.Order. @phase.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="btn-primary w-full">Run</button>
+                    </div>
+                </div>
+
+                <!-- Nmap params -->
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3" data-tool-params="nmap">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="NmapServiceDetection" value="true" class="h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                        Service detection (-sV)
+                    </label>
+                    <div>
+                        <label class="label" for="nmap-top">Top ports</label>
+                        <input class="input" type="number" id="nmap-top" name="NmapTopPorts" value="100" min="1" max="1000" />
+                    </div>
+                    <div>
+                        <label class="label" for="nmap-timing">Timing</label>
+                        <select class="select" id="nmap-timing" name="NmapTiming">
+                            <option value="T2">T2 (polite)</option>
+                            <option value="T3" selected>T3 (normal)</option>
+                            <option value="T4">T4 (aggressive)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- httpx params -->
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3" data-tool-params="httpx">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="HttpxTechDetect" value="true" checked class="h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                        Technology detection
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="HttpxFollowRedirects" value="true" class="h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                        Follow redirects (off = safer)
+                    </label>
+                </div>
+
+                <!-- Subfinder params -->
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3" data-tool-params="subfinder">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="SubfinderAllSources" value="true" class="h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                        Use all sources
+                    </label>
+                </div>
+
+                <!-- Active-scan confirmation -->
+                <div class="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3" data-active-confirm>
+                    <label class="flex items-start gap-2 text-sm text-amber-100">
+                        <input type="checkbox" name="ConfirmedActive" value="true" class="mt-0.5 h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                        <span>I confirm this is an <strong>active scan</strong> against an authorized target and I am permitted to run it.</span>
+                    </label>
+                </div>
+            </form>
+        }
+
+        <!-- Runs list -->
+        @if (Model.Runs.Count == 0)
+        {
+            <p class="text-sm text-muted">No runs yet.</p>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr><th>Tool</th><th>Target</th><th>Phase</th><th>Status</th><th>Started</th><th>Duration</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in Model.Runs)
+                        {
+                            <tr>
+                                <td class="font-medium text-content">@(run.SecurityTool?.Name ?? run.ToolSlug)</td>
+                                <td class="font-mono text-muted">@run.TargetValue</td>
+                                <td class="text-muted">@(run.Phase?.Name ?? "—")</td>
+                                <td><partial name="_RunStatusBadge" model="run.Status" /></td>
+                                <td class="text-muted">@(run.StartedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                <td class="font-mono text-muted">@(run.DurationMs is long ms ? $"{ms / 1000.0:0.0}s" : "—")</td>
+                                <td class="text-right">
+                                    <a class="text-sm text-primary hover:underline" asp-controller="Executions" asp-action="Details" asp-route-id="@run.Id">Open</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+<script src="~/js/execution.js" asp-append-version="true"></script>
