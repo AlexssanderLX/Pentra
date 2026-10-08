@@ -1,0 +1,88 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    string NavClass(string target) =>
+        string.Equals(controller, target, StringComparison.OrdinalIgnoreCase)
+            ? "sidebar-link sidebar-link-active"
+            : "sidebar-link";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Pentra</title>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="icon" href="~/favicon.ico" />
+</head>
+<body>
+    <div class="min-h-screen">
+        <input id="nav-toggle" type="checkbox" class="peer sr-only" aria-hidden="true" />
+
+        <!-- Sidebar -->
+        <aside class="fixed inset-y-0 left-0 z-40 w-[260px] -translate-x-full border-r border-white/5 bg-surface/80 backdrop-blur-md transition-transform duration-200 peer-checked:translate-x-0 lg:translate-x-0">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center gap-3 px-5 py-5">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-bg font-bold">P</span>
+                    <div>
+                        <div class="text-sm font-semibold leading-tight text-content">Pentra</div>
+                        <div class="text-[11px] uppercase tracking-wider text-muted">Offensive Workspace</div>
+                    </div>
+                </div>
+
+                <nav class="flex-1 space-y-1 px-3 py-2">
+                    <div class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-widest text-muted/70">Overview</div>
+                    <a class="@NavClass("Home")" asp-controller="Home" asp-action="Index">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+                        Dashboard
+                    </a>
+
+                    <div class="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-widest text-muted/70">Engagements</div>
+                    <a class="@NavClass("Projects")" asp-controller="Projects" asp-action="Index">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
+                        Projects
+                    </a>
+
+                    <div class="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-widest text-muted/70">Reference</div>
+                    <a class="@NavClass("Tools")" asp-controller="Tools" asp-action="Index">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 7l3 3-8 8-3-3zM3 21l3-1M14 7l3-3 3 3-3 3"/></svg>
+                        Tool catalog
+                    </a>
+                    <a class="@(string.Equals(controller, "Tools", StringComparison.OrdinalIgnoreCase) && string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Phases", StringComparison.OrdinalIgnoreCase) ? "sidebar-link sidebar-link-active" : "sidebar-link")" asp-controller="Tools" asp-action="Phases">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        Methodology
+                    </a>
+                </nav>
+
+                <div class="border-t border-white/5 px-5 py-4">
+                    <div class="badge-neutral">
+                        <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+                        Execution disabled
+                    </div>
+                    <p class="mt-2 text-[11px] leading-relaxed text-muted">No scanners run in this build. Planning &amp; documentation only.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Scrim for mobile -->
+        <label for="nav-toggle" class="fixed inset-0 z-30 hidden cursor-pointer bg-black/60 peer-checked:block lg:hidden" aria-hidden="true"></label>
+
+        <!-- Content column -->
+        <div class="lg:pl-[260px]">
+            <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-white/5 bg-bg/80 px-4 py-3 backdrop-blur lg:hidden">
+                <label for="nav-toggle" class="btn-ghost btn-sm cursor-pointer" aria-label="Open navigation">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </label>
+                <span class="font-semibold">Pentra</span>
+            </header>
+
+            <main class="mx-auto w-full max-w-6xl px-4 py-8 lg:px-8">
+                @if (TempData["Flash"] is string flash && !string.IsNullOrWhiteSpace(flash))
+                {
+                    <div class="flash mb-6" role="status">@flash</div>
+                }
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+</body>
+</html>

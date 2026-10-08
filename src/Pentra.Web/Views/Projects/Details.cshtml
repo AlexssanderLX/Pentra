@@ -1,0 +1,230 @@
+@model Pentra.Web.Models.ProjectDetailsViewModel
+@{
+    ViewData["Title"] = Model.Project.Name;
+    var project = Model.Project;
+}
+
+<div class="mb-6">
+    <a class="text-sm text-muted hover:text-content" asp-action="Index">&larr; Projects</a>
+    <div class="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl">@project.Name</h1>
+                <partial name="_StatusBadge" model="project.Status" />
+            </div>
+            <p class="mt-1 text-sm text-muted">@project.Client</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a class="btn-ghost btn-sm" asp-action="Edit" asp-route-id="@project.Id">Edit</a>
+            <form asp-action="Delete" asp-route-id="@project.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Meta -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="card card-pad lg:col-span-2">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wider text-muted">Description</h2>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-content/90">@(string.IsNullOrWhiteSpace(project.Description) ? "—" : project.Description)</p>
+
+        <h2 class="mb-2 mt-5 text-sm font-semibold uppercase tracking-wider text-muted">Engagement notes / authorization</h2>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-content/90">@(string.IsNullOrWhiteSpace(project.EngagementNotes) ? "—" : project.EngagementNotes)</p>
+    </div>
+    <div class="card card-pad space-y-3 text-sm">
+        <div class="flex justify-between"><span class="text-muted">Start</span><span class="font-mono">@(project.StartDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+        <div class="flex justify-between"><span class="text-muted">End</span><span class="font-mono">@(project.EndDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+        <div class="flex justify-between"><span class="text-muted">Targets</span><span class="font-mono">@project.Targets.Count</span></div>
+        <div class="flex justify-between"><span class="text-muted">Tool selections</span><span class="font-mono">@project.ToolSelections.Count</span></div>
+        <div class="flex justify-between"><span class="text-muted">Created</span><span class="font-mono">@project.CreatedAt.ToString("yyyy-MM-dd")</span></div>
+    </div>
+</div>
+
+<!-- Scope -->
+<section id="scope" class="mt-6 card">
+    <div class="card-head">
+        <h2 class="text-base">Scope &amp; authorized targets</h2>
+        <span class="badge-neutral">@project.Targets.Count target(s)</span>
+    </div>
+    <div class="card-pad space-y-5">
+        @if (project.Targets.Count > 0)
+        {
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr><th>Target</th><th>Kind</th><th>Authorization</th><th>Notes</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in project.Targets.OrderBy(t => t.Value))
+                        {
+                            <tr>
+                                <td class="font-mono text-content">@t.Value</td>
+                                <td class="text-muted">@t.Kind</td>
+                                <td>
+                                    @if (t.IsAuthorized)
+                                    {
+                                        <span class="badge-ok">Authorized</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-danger">Not authorized</span>
+                                    }
+                                </td>
+                                <td class="text-muted">@(string.IsNullOrWhiteSpace(t.Notes) ? "—" : t.Notes)</td>
+                                <td class="text-right">
+                                    <form asp-controller="Targets" asp-action="Delete" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@t.Id" />
+                                        <input type="hidden" name="projectId" value="@project.Id" />
+                                        <button type="submit" class="text-sm text-red-300 hover:underline">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-sm text-muted">No targets defined. Add an authorized target below before planning any activity.</p>
+        }
+
+        <!-- Add target -->
+        <partial name="_AddTarget" model="Model.NewTarget" />
+    </div>
+</section>
+
+<!-- Phases & tool selection -->
+<section id="phases" class="mt-6">
+    <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg">Methodology &amp; tool selection</h2>
+        <a class="text-sm text-primary hover:underline" asp-controller="Tools" asp-action="Phases">About the 7 phases</a>
+    </div>
+
+    <div class="space-y-4">
+        @foreach (var phase in Model.Phases)
+        {
+            <div id="phase-@phase.Id" class="card">
+                <div class="card-head">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-md bg-primary-soft font-mono text-sm text-primary">@phase.Order</span>
+                        <div>
+                            <h3 class="text-base leading-tight">@phase.Name</h3>
+                            <p class="text-xs text-muted">@phase.Description</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-pad">
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach (var tool in Model.Catalog)
+                        {
+                            var selected = Model.IsSelected(phase.Id, tool.Id);
+                            <form asp-action="ToggleTool" asp-route-id="@project.Id" method="post" class="contents">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="phaseId" value="@phase.Id" />
+                                <input type="hidden" name="toolId" value="@tool.Id" />
+                                <button type="submit"
+                                        class="chip-tool w-full justify-between @(selected ? "border-primary/50 bg-primary-soft text-primary" : "text-content hover:border-white/20")">
+                                    <span class="flex items-center gap-2">
+                                        <span class="font-medium">@tool.Name</span>
+                                        @if (tool.DefaultPhaseId == phase.Id)
+                                        {
+                                            <span class="text-[10px] uppercase tracking-wide text-muted">suggested</span>
+                                        }
+                                    </span>
+                                    @if (selected)
+                                    {
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">+</span>
+                                    }
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Evidence & reports (initial structure) -->
+<section class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div class="card">
+        <div class="card-head">
+            <h2 class="text-base">Evidence</h2>
+            <span class="badge-neutral">@project.Evidence.Count</span>
+        </div>
+        <div class="card-pad">
+            @if (project.Evidence.Count == 0)
+            {
+                <p class="text-sm text-muted">Evidence capture arrives in a later checkpoint. The data model is in place.</p>
+            }
+            else
+            {
+                <ul class="space-y-2 text-sm">
+                    @foreach (var e in project.Evidence)
+                    {
+                        <li class="rounded-lg border border-white/5 bg-bg/40 px-3 py-2">@e.Title</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-head">
+            <h2 class="text-base">Reports</h2>
+            <span class="badge-neutral">@project.Reports.Count</span>
+        </div>
+        <div class="card-pad">
+            @if (project.Reports.Count == 0)
+            {
+                <p class="text-sm text-muted">Report generation arrives in a later checkpoint. The data model is in place.</p>
+            }
+            else
+            {
+                <ul class="space-y-2 text-sm">
+                    @foreach (var r in project.Reports)
+                    {
+                        <li class="rounded-lg border border-white/5 bg-bg/40 px-3 py-2">@r.Title</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- History -->
+<section class="mt-6 card">
+    <div class="card-head">
+        <h2 class="text-base">Change history</h2>
+        <span class="badge-neutral">@Model.History.Count entr@(Model.History.Count == 1 ? "y" : "ies")</span>
+    </div>
+    <div class="card-pad">
+        @if (Model.History.Count == 0)
+        {
+            <p class="text-sm text-muted">No changes recorded yet.</p>
+        }
+        else
+        {
+            <ol class="relative space-y-4 border-l border-white/10 pl-5">
+                @foreach (var h in Model.History)
+                {
+                    <li class="relative">
+                        <span class="absolute -left-[22px] top-1 h-2 w-2 rounded-full bg-primary/70"></span>
+                        <div class="flex items-center gap-2">
+                            <span class="badge-neutral">@h.Action</span>
+                            <span class="text-xs text-muted">@h.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                        </div>
+                        <p class="mt-1 text-sm text-content/90">@h.Summary</p>
+                    </li>
+                }
+            </ol>
+        }
+    </div>
+</section>

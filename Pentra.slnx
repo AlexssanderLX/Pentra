@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Pentra.Application/Pentra.Application.csproj" />
+    <Project Path="src/Pentra.Domain/Pentra.Domain.csproj" />
+    <Project Path="src/Pentra.Infrastructure/Pentra.Infrastructure.csproj" />
+    <Project Path="src/Pentra.Web/Pentra.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pentra.Tests/Pentra.Tests.csproj" />
+  </Folder>
+</Solution>

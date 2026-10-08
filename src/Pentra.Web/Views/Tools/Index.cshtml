@@ -1,0 +1,38 @@
+@model IReadOnlyList<Pentra.Domain.Entities.SecurityTool>
+@{
+    ViewData["Title"] = "Tool catalog";
+    var groups = Model.GroupBy(t => t.Category).OrderBy(g => g.Key);
+}
+
+<div class="mb-8">
+    <h1 class="text-2xl">Tool catalog</h1>
+    <p class="mt-1 text-sm text-muted">Reference catalog of security tools available for selection per project and phase. No tool is executed in this build.</p>
+</div>
+
+<div class="space-y-6">
+    @foreach (var group in groups)
+    {
+        <div>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">@group.Key</h2>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                @foreach (var tool in group.OrderBy(t => t.Name))
+                {
+                    <div class="card card-pad">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base">@tool.Name</h3>
+                            <code class="rounded bg-bg/60 px-2 py-0.5 font-mono text-xs text-primary">@tool.Command</code>
+                        </div>
+                        <p class="mt-2 text-sm leading-relaxed text-muted">@tool.Description</p>
+                        <div class="mt-4 flex items-center justify-between">
+                            <span class="badge-neutral">@(tool.DefaultPhase?.Name ?? "—")</span>
+                            @if (!string.IsNullOrWhiteSpace(tool.ReferenceUrl))
+                            {
+                                <a class="text-xs text-primary hover:underline" href="@tool.ReferenceUrl" target="_blank" rel="noopener noreferrer">Docs ↗</a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

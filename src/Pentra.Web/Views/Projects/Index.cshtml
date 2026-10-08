@@ -1,0 +1,61 @@
+@model IReadOnlyList<Pentra.Application.Models.ProjectListItem>
+@{
+    ViewData["Title"] = "Projects";
+}
+
+<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl">Projects</h1>
+        <p class="mt-1 text-sm text-muted">All penetration-testing engagements.</p>
+    </div>
+    <a class="btn-primary" asp-action="Create">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        New project
+    </a>
+</div>
+
+<div class="card">
+    @if (Model.Count == 0)
+    {
+        <div class="card-pad text-center">
+            <p class="text-sm text-muted">No projects yet.</p>
+            <a class="btn-primary mt-4" asp-action="Create">Create your first engagement</a>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Client</th>
+                        <th>Status</th>
+                        <th class="text-right">Targets</th>
+                        <th class="text-right">Tools</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>
+                                <a class="font-medium text-content hover:text-primary" asp-action="Details" asp-route-id="@p.Id">@p.Name</a>
+                            </td>
+                            <td class="text-muted">@p.Client</td>
+                            <td><partial name="_StatusBadge" model="p.Status" /></td>
+                            <td class="text-right font-mono">@p.TargetCount</td>
+                            <td class="text-right font-mono">@p.ToolCount</td>
+                            <td class="text-muted">@p.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td class="text-right">
+                                <a class="text-sm text-primary hover:underline" asp-action="Details" asp-route-id="@p.Id">Open</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

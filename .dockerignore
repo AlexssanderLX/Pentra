@@ -1,0 +1,25 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Node (Tailwind) — CSS is pre-built and committed, node_modules is not needed
+**/node_modules/
+
+# Local databases / data
+**/data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+pentra-design.db
+
+# Git / IDE
+.git/
+.gitignore
+.vs/
+.vscode/
+**/.idea/
+
+# Docs not needed in the image
+docs/
+*.md

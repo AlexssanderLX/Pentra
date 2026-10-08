@@ -1,0 +1,56 @@
+@model Pentra.Web.Models.ProjectFormViewModel
+
+<form asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" class="space-y-5">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div asp-validation-summary="ModelOnly" class="field-error"></div>
+
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div>
+            <label class="label" asp-for="Name"></label>
+            <input class="input" asp-for="Name" autofocus placeholder="e.g. Acme Corp external assessment" />
+            <span asp-validation-for="Name" class="field-error"></span>
+        </div>
+        <div>
+            <label class="label" asp-for="Client"></label>
+            <input class="input" asp-for="Client" placeholder="e.g. Acme Corp" />
+            <span asp-validation-for="Client" class="field-error"></span>
+        </div>
+    </div>
+
+    <div>
+        <label class="label" asp-for="Description"></label>
+        <textarea class="textarea" asp-for="Description" placeholder="Short description of the engagement."></textarea>
+        <span asp-validation-for="Description" class="field-error"></span>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div>
+            <label class="label" asp-for="Status"></label>
+            <select class="select" asp-for="Status" asp-items="Html.GetEnumSelectList<ProjectStatus>()"></select>
+        </div>
+        <div>
+            <label class="label" asp-for="StartDate"></label>
+            <input class="input" asp-for="StartDate" type="date" />
+            <span asp-validation-for="StartDate" class="field-error"></span>
+        </div>
+        <div>
+            <label class="label" asp-for="EndDate"></label>
+            <input class="input" asp-for="EndDate" type="date" />
+            <span asp-validation-for="EndDate" class="field-error"></span>
+        </div>
+    </div>
+
+    <div>
+        <label class="label" asp-for="EngagementNotes"></label>
+        <textarea class="textarea" asp-for="EngagementNotes" placeholder="Rules of engagement, authorization reference, constraints."></textarea>
+        <p class="mt-1 text-xs text-muted">Authorization is a precondition for any future tool execution.</p>
+        <span asp-validation-for="EngagementNotes" class="field-error"></span>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button type="submit" class="btn-primary">@(Model.IsEdit ? "Save changes" : "Create project")</button>
+        <a class="btn-ghost" asp-action="Index">Cancel</a>
+    </div>
+</form>

@@ -1,0 +1,13 @@
+@model Pentra.Web.Models.ProjectFormViewModel
+@{
+    ViewData["Title"] = "New project";
+}
+
+<div class="mb-6">
+    <a class="text-sm text-muted hover:text-content" asp-action="Index">&larr; Projects</a>
+    <h1 class="mt-2 text-2xl">New project</h1>
+</div>
+
+<div class="card card-pad max-w-3xl">
+    <partial name="_Form" model="Model" />
+</div>

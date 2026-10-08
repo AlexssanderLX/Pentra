@@ -1,0 +1,30 @@
+@model Pentra.Web.Models.TargetFormViewModel
+
+<form asp-controller="Targets" asp-action="Create" method="post" class="rounded-lg border border-white/10 bg-bg/40 p-4">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ProjectId" />
+    <h3 class="mb-3 text-sm font-semibold text-content">Add target to scope</h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div class="md:col-span-2">
+            <label class="label" asp-for="Value">Target</label>
+            <input class="input" asp-for="Value" placeholder="example.com, 10.0.0.0/24, https://app.example.com" />
+        </div>
+        <div>
+            <label class="label" asp-for="Kind">Kind</label>
+            <select class="select" asp-for="Kind" asp-items="Html.GetEnumSelectList<TargetKind>()"></select>
+        </div>
+        <div class="flex items-end">
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" asp-for="IsAuthorized" class="h-4 w-4 rounded border-white/20 bg-bg text-primary" />
+                Authorized
+            </label>
+        </div>
+    </div>
+    <div class="mt-4 flex items-end gap-4">
+        <div class="flex-1">
+            <label class="label" asp-for="Notes">Notes</label>
+            <input class="input" asp-for="Notes" placeholder="Optional" />
+        </div>
+        <button type="submit" class="btn-primary">Add target</button>
+    </div>
+</form>

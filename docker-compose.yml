@@ -1,0 +1,20 @@
+services:
+  pentra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pentra:checkpoint1
+    container_name: pentra
+    ports:
+      - "8080:8080"
+    environment:
+      # SQLite database lives on the mounted volume so data survives restarts.
+      ConnectionStrings__Pentra: "Data Source=/app/data/pentra.db"
+    volumes:
+      - pentra-data:/app/data
+    restart: unless-stopped
+    # Security: the Docker socket is intentionally NOT mounted. The web app has
+    # no access to the Docker daemon in this checkpoint.
+
+volumes:
+  pentra-data:

@@ -1,0 +1,103 @@
+@model Pentra.Application.Models.DashboardSummary
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl">Dashboard</h1>
+        <p class="mt-1 text-sm text-muted">Overview of your penetration-testing engagements.</p>
+    </div>
+    <a class="btn-primary" asp-controller="Projects" asp-action="Create">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        New project
+    </a>
+</div>
+
+<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div class="stat-card">
+        <span class="stat-label">Total projects</span>
+        <span class="stat-value">@Model.TotalProjects</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Active</span>
+        <span class="stat-value text-primary">@Model.ActiveProjects</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Authorized targets</span>
+        <span class="stat-value">@Model.AuthorizedTargets</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Catalog tools</span>
+        <span class="stat-value">@Model.CatalogTools</span>
+    </div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="card lg:col-span-2">
+        <div class="card-head">
+            <h2 class="text-base">Recent projects</h2>
+            <a class="text-sm text-primary hover:underline" asp-controller="Projects" asp-action="Index">View all</a>
+        </div>
+        @if (Model.RecentProjects.Count == 0)
+        {
+            <div class="card-pad text-sm text-muted">
+                No projects yet. <a class="text-primary hover:underline" asp-controller="Projects" asp-action="Create">Create your first engagement</a>.
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Client</th>
+                            <th>Status</th>
+                            <th class="text-right">Targets</th>
+                            <th class="text-right">Tools</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.RecentProjects)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="font-medium text-content hover:text-primary" asp-controller="Projects" asp-action="Details" asp-route-id="@p.Id">@p.Name</a>
+                                </td>
+                                <td class="text-muted">@p.Client</td>
+                                <td><partial name="_StatusBadge" model="p.Status" /></td>
+                                <td class="text-right font-mono">@p.TargetCount</td>
+                                <td class="text-right font-mono">@p.ToolCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2 class="text-base">By status</h2>
+        </div>
+        <div class="card-pad space-y-3">
+            @foreach (ProjectStatus status in Enum.GetValues<ProjectStatus>())
+            {
+                var count = Model.ProjectsByStatus.TryGetValue(status, out var c) ? c : 0;
+                // Bucket to the nearest 5% so we can use a safelisted utility class (no inline style).
+                var bucket = Model.TotalProjects == 0 ? 0 : (int)Math.Round(20.0 * count / Model.TotalProjects) * 5;
+                var widthClass = $"w-[{bucket}%]";
+                <div>
+                    <div class="mb-1 flex items-center justify-between text-sm">
+                        <span class="text-muted">@status</span>
+                        <span class="font-mono text-content">@count</span>
+                    </div>
+                    <div class="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                        <div class="h-full rounded-full bg-primary/70 @widthClass"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

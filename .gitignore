@@ -1,0 +1,25 @@
+# .NET build output
+**/bin/
+**/obj/
+**/out/
+[Dd]ebug/
+[Rr]elease/
+*.user
+
+# Node (Tailwind pipeline)
+**/node_modules/
+
+# Local SQLite databases
+**/data/
+*.db
+*.db-shm
+*.db-wal
+pentra-design.db
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

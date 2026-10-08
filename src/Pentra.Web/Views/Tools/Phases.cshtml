@@ -1,0 +1,22 @@
+@model IReadOnlyList<Pentra.Domain.Entities.PentestPhase>
+@{
+    ViewData["Title"] = "Methodology";
+}
+
+<div class="mb-8">
+    <h1 class="text-2xl">Methodology — the seven phases</h1>
+    <p class="mt-1 text-sm text-muted">The standard phases Pentra tracks for every engagement.</p>
+</div>
+
+<div class="space-y-3">
+    @foreach (var phase in Model)
+    {
+        <div class="card card-pad flex items-start gap-4">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft font-mono text-primary">@phase.Order</span>
+            <div>
+                <h2 class="text-base">@phase.Name</h2>
+                <p class="mt-1 text-sm leading-relaxed text-muted">@phase.Description</p>
+            </div>
+        </div>
+    }
+</div>

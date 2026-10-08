@@ -1,0 +1,14 @@
+@model Pentra.Domain.Enums.ProjectStatus
+@{
+    var (cls, label) = Model switch
+    {
+        ProjectStatus.Draft => ("badge-neutral", "Draft"),
+        ProjectStatus.Scoping => ("badge-primary", "Scoping"),
+        ProjectStatus.Active => ("badge-ok", "Active"),
+        ProjectStatus.OnHold => ("badge-warn", "On hold"),
+        ProjectStatus.Completed => ("badge-primary", "Completed"),
+        ProjectStatus.Archived => ("badge-neutral", "Archived"),
+        _ => ("badge-neutral", Model.ToString())
+    };
+}
+<span class="@cls">@label</span>
