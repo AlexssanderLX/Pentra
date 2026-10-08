@@ -1,20 +1,39 @@
 services:
+  # Web dashboard + API. Has NO access to the Docker socket.
   pentra:
     build:
       context: .
       dockerfile: Dockerfile
-    image: pentra:checkpoint1
+    image: pentra:checkpoint2
     container_name: pentra
     ports:
       - "8080:8080"
     environment:
-      # SQLite database lives on the mounted volume so data survives restarts.
       ConnectionStrings__Pentra: "Data Source=/app/data/pentra.db"
     volumes:
       - pentra-data:/app/data
     restart: unless-stopped
-    # Security: the Docker socket is intentionally NOT mounted. The web app has
-    # no access to the Docker daemon in this checkpoint.
+    depends_on:
+      - pentra-runner
+
+  # Privileged execution worker. The ONLY service with the Docker socket.
+  # It launches ephemeral, hardened tool containers and writes results back to
+  # the shared database. The web service above never touches Docker.
+  pentra-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    image: pentra-runner:checkpoint2
+    container_name: pentra-runner
+    environment:
+      ConnectionStrings__Pentra: "Data Source=/app/data/pentra.db"
+      Pentra__Runner__MaxConcurrency: "2"
+    volumes:
+      - pentra-data:/app/data
+      # Docker socket is granted ONLY to this worker, read-write, so it can
+      # create/stop/remove ephemeral tool containers via the Engine API.
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
 
 volumes:
   pentra-data:

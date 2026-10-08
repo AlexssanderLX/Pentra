@@ -3,6 +3,7 @@
     <Project Path="src/Pentra.Application/Pentra.Application.csproj" />
     <Project Path="src/Pentra.Domain/Pentra.Domain.csproj" />
     <Project Path="src/Pentra.Infrastructure/Pentra.Infrastructure.csproj" />
+    <Project Path="src/Pentra.Runner/Pentra.Runner.csproj" />
     <Project Path="src/Pentra.Web/Pentra.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">

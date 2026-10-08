@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1
+
+# Build the privileged execution worker (Pentra.Runner).
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY Pentra.slnx ./
+COPY src/Pentra.Domain/Pentra.Domain.csproj src/Pentra.Domain/
+COPY src/Pentra.Application/Pentra.Application.csproj src/Pentra.Application/
+COPY src/Pentra.Infrastructure/Pentra.Infrastructure.csproj src/Pentra.Infrastructure/
+COPY src/Pentra.Web/Pentra.Web.csproj src/Pentra.Web/
+COPY src/Pentra.Runner/Pentra.Runner.csproj src/Pentra.Runner/
+COPY tests/Pentra.Tests/Pentra.Tests.csproj tests/Pentra.Tests/
+RUN dotnet restore src/Pentra.Runner/Pentra.Runner.csproj
+
+COPY . .
+RUN dotnet publish src/Pentra.Runner/Pentra.Runner.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime (no ASP.NET needed). This worker is the privileged boundary: it holds
+# the Docker socket and therefore runs as root by design. The web image does not.
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+WORKDIR /app
+RUN mkdir -p /app/data
+COPY --from=build /app/publish .
+
+ENV ConnectionStrings__Pentra="Data Source=/app/data/pentra.db" \
+    DOTNET_ENVIRONMENT=Production
+
+ENTRYPOINT ["dotnet", "Pentra.Runner.dll"]

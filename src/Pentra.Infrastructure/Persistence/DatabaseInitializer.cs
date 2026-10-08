@@ -19,6 +19,11 @@ public static class DatabaseInitializer
         EnsureDatabaseDirectory(db.Database.GetConnectionString());
 
         await db.Database.MigrateAsync(ct);
+
+        // WAL lets the web app and the runner process share the SQLite file with
+        // concurrent readers and a single writer. The setting persists in the file.
+        await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
+
         await DataSeeder.SeedAsync(db, clock, ct);
     }
 
